@@ -1,7 +1,0 @@
-.text
-.align 4
-
-_start
-	
-loop:
-	b loop
