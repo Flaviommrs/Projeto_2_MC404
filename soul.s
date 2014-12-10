@@ -39,10 +39,35 @@
 .set READ_SONAR_NUMBER,                 8
 .set SET_MOTOR_SPEED_NUMBER,            9
 .set SET_MOTORS_SPEED_NUMBER,          10
-.set RETURN_TO_SUPERVISOR_NUMBER,       14
+.set RETURN_TO_SUPERVISOR_NUMBER,      14
 
 @Constantes do Alarme
-.set MAX_ALARMS,                       10
+.set MAX_ALARMS,                       16
+
+@Numeros dos Usuarios
+.set USER_NUMBER,             0x10
+.set SYSTEM_NUMBER,           0x1F
+
+@Mascaras para leitura e escrita no GPIO
+.set SONAR_ID_SHIFT,          0x2
+.set MUX_MASK,                0x2C
+.set TRIGGER_MASK,            0x2
+.set FLAG_READ_MASK,          0xFFFFFFFE
+.set SONAR_DATA_MASK,         0xFFFE001F
+.set SET_MOTOR_ZERO_MASK,     0xFE0000
+.set SET_MOTOR_ONE_MASK,      0xFE000000
+.set SET_MOTORS_MASK,         0xFFFE0000
+.set MOTOR_ZERO_SPEED_SHIFT,          18
+.set MOTOR_ONE_SPEED_SHIFT,           25
+.set MOTOR_WRITE_ZERO,        0x40000
+.set MOTOR_WRITE_ONE,         0x2000000
+.set MOTORS_WRITE,            0x2040000
+
+@Delay
+.set DELAY_ITERACTIONS,            20000
+
+@Motors
+.set MAXIMUM_SPEED,           0x2F
 
 _start:
 
@@ -153,8 +178,8 @@ SET_STK_POINTERS:
 
 	@Altera o usuario de Supervisor para System
 	mrs r0, CPSR
-	bic r0, r0, #0x1F
-	orr r0, r0, #0x1F
+	bic r0, r0, #SYSTEM_NUMBER
+	orr r0, r0, #SYSTEM_NUMBER
 	msr CPSR_c, r0
 
 	@Configura a stack do usuario
@@ -162,8 +187,8 @@ SET_STK_POINTERS:
 
 	@Altera para modo de usuario
 	mrs r0, CPSR
-	bic r0, r0, #0x1F
-	orr r0, r0, #0x10
+	bic r0, r0, #SYSTEM_NUMBER
+	orr r0, r0, #USER_NUMBER
 	msr CPSR_c, r0
 
 	@Pula para o endereço correspondente ao começo do codigo do usuario
@@ -241,7 +266,7 @@ SET_ALARM:
 	ldr r5, =ALARM_VECTOR   @endereço inicial do vetor de alarmes
 
 for:
-	cmp r2, #10             @verifica se ja foi feita a ultima iteração
+	cmp r2, #MAX_ALARMS             @verifica se ja foi feita a ultima iteração
 	beq end_of_for
 
 	ldr r6, [r5, #4]       
@@ -286,18 +311,166 @@ READ_SONAR:
 
 	stmfd sp!, {r4 - r12}
 
+	@verifica se o id passado é valido
+	cmp r0, #15
+	bhi invalid_id
 
+	@coloca em r2 o valor atual do gpio
+	ldr r1, =GPIO_DR
+	ldr r2, [r1]
 
+	lsl r0, r0, #SONAR_ID_SHIFT       @desloca o id do sonar para esquerda duas posições
+
+	@Coloca o ID do sonar dentro do registrador DR
+	bic r2,r2, #MUX_MASK
+	orr r2,r2,r0
+	str r2, [r1]
+
+	@seta o trigger para 0
+	bic r2, r2, #TRIGGER_MASK
+	str r2, [r1]
+
+	bl delay
+
+	@seta o trigger para 1
+	ldr r2, [r1]
+	bic r2, r2, #TRIGGER_MASK
+	orr r2, r2, #TRIGGER_MASK
+	str r2, [r1]
+
+	bl delay
+
+	@seta o trigger para 0
+	ldr r2, [r1]
+	bic r2, r2, #TRIGGER_MASK
+	str r2, [r1]
+	
+flag_check:
+
+	@checa a flag
+	ldr r1, =GPIO_PSR
+	ldr r2, [r1]
+	bic r2, r2, #FLAG_READ_MASK
+	cmp r2, #0x1
+
+	@faz o delay de 15 ms caso a flag nao seja 1
+	beq continue_reading
+	bl delay
+	b flag_check
+	
+continue_reading:
+
+	@le a distancia pelo registrador psr
+	ldr r1, =GPIO_PSR
+	ldr r2, [r1]
+	bic r2, r2, #SONAR_DATA_MASK
+
+	mov r0, r2
+
+	b end_of_read_sonars
+	
+invalid_id:	
+
+	@caso o id seja invalido retorna -1
+	mov r0, #-1
+	
+end_of_read_sonnars:
+	
 	ldmfd sp!, {r4 - r12}
 
 	movs pc, lr
+
+delay:
+	
+	stmfd sp!, {r4 - r12}
+
+delay:	
+	mov r4, #0
+for3:
+	
+	cmp r4, #DELAY_ITERACTIONS
+	beq end_for3
+	add r4, r4, #1
+	b for3
+	
+end_for3:
+	
+	ldmfd sp!, {r4 - r12}
+
+	mov pc, lr
+	
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 SET_MOTOR_SPEED:
 
 	stmfd sp!, {r4 - r12}
 
+	@verifica se a velocidade é valida
+	cmp r1, #MAXIMUM_SPEED
+	bhi invalid_speed
 
+	@verifica se é o motor 0
+	cmp r0, #0
+	beq SET_MOTOR_ZERO
+
+	@verifica se é o motor 1
+	cmp r0, #1
+	beq SET_MOTOR_ONE
+
+	b invalid_motor
+
+invalid_speed:
+
+	mov r0, #-2
+	b end_set_motor_speed
+	
+SET_MOTOR_ZERO:
+
+	@desloca a velocidade no numero de bits para ficar na posição correta
+	lsl r1, r1, #MOTOR_ZERO_SPEED_SHIFT
+
+	@seta o motor write para 1 e a velocidade do motor zero 
+	ldr r3, =GPIO_DR
+	ldr r2, [r3]
+	bic r2, r2, #SET_MOTOR_ZERO_MASK
+	orr r2, r2, r1
+	orr r2, r2, #MOTOR_WRITE_ZERO
+	str r2, [r3]
+
+	@seta o motor write paa 0 novamente
+	ldr r2, [r3]
+	bic r2, r2, #MOTOR_WRITE_ZERO
+	str r2, [r3]
+	
+	mov r0, #0
+	b end_set_motor_speed
+	
+SET_MOTOR_ONE:
+
+	@desloca a velocidade para o liugar da velocidade do motor 1
+	lsl r1, r1, #MOTOR_ONE_SPEED_SHIFT
+
+	@seta o motor write 1 para 0 e seta a nova velocidade do motor 1
+	ldr r3, =GPIO_DR
+	ldr r2, [r3]
+	bic r2, r2, #SET_MOTOR_ONE_MASK
+	orr r2, r2, r1
+	orr r2, r2, #MOTOR_WRITE_ONE
+	str r2, [r3]
+
+	@seta o motor write para 0
+	ldr r2, [r3]
+	bic r2, r2, #MOTOR_WRITE_ONE
+	str r2, [r3]
+
+	mov r0, #0
+	b end_set_motor_speed
+	
+invalid_motor:
+
+	mov r0, #-1
+
+end_set_motor_speed:
 
 	ldmfd sp!, {r4 - r12}
 
@@ -308,8 +481,43 @@ SET_MOTORS_SPEED:
 
 	stmfd sp!, {r4 - r12}
 
+	cmp r0, #MAXIMUM_SPEED
+	bhi invalid_speed2
 
+	cmp r1, #MAXIMUM_SPEED
+	bhi invalid_speed3
 
+	lsl r0, r0, #MOTOR_ZERO_SPEED_SHIFT
+	lsl r1, r1, #MOTOR_ONE_SPEED_SHIFT
+
+	@seta os motor write para 1 e seta as velocidades
+	ldr r3, =GPIO_DR
+	ldr r2, [r3]
+	bic r2, r2, #SET_MOTORS_MASK
+	orr r2, r2, r0
+	orr r2, r2, r1
+	orr r2, r2, #MOTORS_WRITE
+	str r2, [r3]
+
+	@seta os motor write para 0
+	ldr r2, [r3]
+	bic r2, r2, @MOTORS_WRITE
+	str r2, [r3]
+
+	mov r0, #0
+	b ende_of_set_motors
+
+invalid_speed2:
+
+	mov r0, #-1
+	b end_of_set_motors
+	
+invalid_speed3:
+
+	mov r0, #-2
+
+end_of_set_motors:
+	
 	ldmfd sp!, {r4 - r12}
 
 	movs pc, lr
@@ -317,13 +525,7 @@ SET_MOTORS_SPEED:
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 RETURN_TO_SUPERVISOR:
 
-	stmfd sp!, {r4 - r12}
-
-
-
-	ldmfd sp!, {r4 - r12}
-
-	movs pc, lr
+	mov pc, lr
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 IRQ_HANDLER:
@@ -346,7 +548,7 @@ IRQ_HANDLER:
 for2:
 
 	@verifica se a umtima oteração ja foi feita
-	cmp r2, #10
+	cmp r2, #MAX_ALARM
 	beq end_of_for2
 
 	@verifica se a posição no vetor nao é uma posição livre
@@ -377,6 +579,9 @@ go_to_user:
 	bic r5, r5, #0x1F
 	orr r5, r5, #0x10
 	msr CPSR_c, r5
+
+	@desloca para o lr do usuario o valor do pc atual mais 8
+	mov lr, [pc, #8]
 
 	@pula para a função do usuario
 	bx r4
@@ -455,6 +660,22 @@ ALARM_VECTOR:
 	.skip 4
 	.word 0x0
 
+	.skip 4
+	.word 0x0
 
+	.skip 4
+	.word 0x0
+
+	.skip 4
+	.word 0x0
+
+	.skip 4
+	.word 0x0
+
+	.skip 4
+	.word 0x0
+
+	.skip 4
+	.word 0x0
 
 
