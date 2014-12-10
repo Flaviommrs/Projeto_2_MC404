@@ -33,15 +33,16 @@
 .set USER_CODE,                0x77802000
 
 @Numero das System Calls
-.set GET_TIME_NUMBER,          120
-.set SET_TIME_NUMBER,          121
-.set SET_ALARM_NUMBER,         122
-.set READ_SONAR_NUMBER,        123
-.set SET_MOTOR_SPEED_NUMBER,   124
-.set SET_MOTORS_SPEED_NUMBER,  125
+.set GET_TIME_NUMBER,                  11
+.set SET_TIME_NUMBER,                  12
+.set SET_ALARM_NUMBER,                 13
+.set READ_SONAR_NUMBER,                 8
+.set SET_MOTOR_SPEED_NUMBER,            9
+.set SET_MOTORS_SPEED_NUMBER,          10
+.set RETURN_TO_SUPERVISOR_NUMBER,       14
 
 @Constantes do Alarme
-.set MAX_ALARMS,               10
+.set MAX_ALARMS,                       10
 
 _start:
 
@@ -192,6 +193,10 @@ SUPERVISOR_HANDLER:
 	cmp r7, SET_MOTORS_SPEED_NUMBER
 	beq SET_MOTORS_SPEED
 
+	cmp r7, RETURN_TO_SUPERVISOR_NUMBER
+	beq RETURN_TO_SUPERVISOR
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 GET_TIME:
 
 	@Pega o tempo da memoria
@@ -200,23 +205,83 @@ GET_TIME:
 
 	movs pc, lr
 
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 SET_TIME:
 
+	@seta o tempo do sistema
 	ldr r1, =CONTADOR
 	str r0, [r1]
 
 	movs pc, lr
 
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 SET_ALARM:
 
 	stmfd sp!, {r4 - r12}
 
+	@verifica se o tempo pedido para o alarme é valido
+	ldr r3, =CONTADOR
+	ldr r3, [r3]
 
+	cmp r3, r1
+	bhi INVALID_TIME
+
+	@verifica se o numero maxumo de alarmes foi atingido
+	ldr r4, =ACTIVE_ALARMS
+	ldr r4, [r4]
+
+	cmp MAX_ALARMS, r4
+	beq MAX_ALARM_NUMBER_REACHED
+
+	@adiciona mais um no numero de alarmes ativos
+	add r4, r4, #1
+	str r4, =ACTIVE_ALARMS
+
+	mov r2, #0              @variavel de indução
+	ldr r5, =ALARM_VECTOR   @endereço inicial do vetor de alarmes
+
+for:
+	cmp r2, #10             @verifica se ja foi feita a ultima iteração
+	beq end_of_for
+
+	ldr r6, [r5, #4]       
+
+	cmp r6, #0x0            @verifica se o campo de endereço da struct tem o valor de flag livre, ou seja, ve se a posição esta livre
+	beq store_alarm        
+
+	add r5, r5, #8          @vai para a proxima posição no vetor de alarmes
+	add r2, r2, #1          @incrementa um na variavel de indução
+	b for
+
+store_alarm:
+	
+	str r1, [r6]
+	str r0, [r6, #4]
+
+end_of_for:
+
+	@retorna 0 caso o alarme tenha sio adicionado corretamente
+	mov r0, #0
+	b END_OF_SET_TIME
+
+INVALID_TIME:
+
+	@retorna -2 caso o tempo pedido não seja valido
+	mov r0, #-2
+	b END_OF_SET_TIME
+
+MAX_ALARM_NUMBER_REACHED:
+
+	@retorna -1 caso o numero maximo de alarmes ativos tenha sido atingido
+	mov r0, #-1
+
+END_OF_SET_TIME:
 
 	ldmfd sp!, {r4 - r12}
 
 	movs pc, lr
 
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 READ_SONAR:
 
 	stmfd sp!, {r4 - r12}
@@ -227,6 +292,7 @@ READ_SONAR:
 
 	movs pc, lr
 
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 SET_MOTOR_SPEED:
 
 	stmfd sp!, {r4 - r12}
@@ -237,6 +303,7 @@ SET_MOTOR_SPEED:
 
 	movs pc, lr
 
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 SET_MOTORS_SPEED:
 
 	stmfd sp!, {r4 - r12}
@@ -247,19 +314,101 @@ SET_MOTORS_SPEED:
 
 	movs pc, lr
 
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+RETURN_TO_SUPERVISOR:
+
+	stmfd sp!, {r4 - r12}
+
+
+
+	ldmfd sp!, {r4 - r12}
+
+	movs pc, lr
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 IRQ_HANDLER:
+
+	stmfd sp!, {r0 - r12}
 
 	ldr r0, =GPT_SR
 	mov r1, #0x1
 	str r1, [r0]
 
+	@adiciona uma unidade de tempo no CONTADOR
 	ldr r1, =CONTADOR
 	ldr r0, [r1]
 	add r0, r0, #1
 	str r0, [r1]
+
+	mov r2, #0                      @variavel de indução
+	ldr r3, =ALARM_VECTOR           @variavel contendo o endereço inicial do vetor de alarmes
+
+for2:
+
+	@verifica se a umtima oteração ja foi feita
+	cmp r2, #10
+	beq end_of_for2
+
+	@verifica se a posição no vetor nao é uma posição livre
+	ldr r4, [r3, #4]
+	cmp r4, 0x0
+	beq continue_for
+
+	@compara cada tempo de cada alarme de dentro do vetor de alarmes com o tempo atual do sistema
+	ldr r4, [r3]
+	cmp r4, r0
+	bls go_to_user
+
+continue_for:
+	add r2, r2, #1
+	add r3, r3, #8
+
+	b for2
+
+go_to_user:
+
+	@coloca o endereço da função a ser chamada pelo sistema quando o alarme for ativado em r4
+	ldr r4, [r3, #4]
+
+	stmfd sp!, {r0 - r4}
+
+	@altera para modo de usuario
+	mrs r5, CPSR
+	bic r5, r5, #0x1F
+	orr r5, r5, #0x10
+	msr CPSR_c, r5
+
+	@pula para a função do usuario
+	bx r4
+
+	@chama system call que fara com que o modo volte pa supervisor quando a função do usuario acabar
+	mov r7, RETURN_TO_SUPERVISOR_NUMBER
+	svc r0, 0x0
+
+	ldmfd sp!, {r0 - r4}
+
+	@diminui um no numero de alarmes ativos
+	ldr r4, ACTIVE_ALARMS
+	ldr r6, [r4]
+	sub r6, r6, #1
+	str r6, [r4]
+
+	@libera o espaço do alarme 
+	str 0x0, [r3, #4]
+
+	add r2, r2, #1
+	add r3, r3, #8
+
+	b for2 
+
+end_of_for2:
+
+	ldmfd sp!, {r4 - r12}
+
 	sub lr, lr, #4
 	movs pc, lr
 
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 INTERRUPTION_HANDLER:
 
 
@@ -272,4 +421,40 @@ CONTADOR:
 	.skip 4
 
 ACTIVE_ALARMS:
+	.word 0x0
+
+ALARM_VECTOR:
+
 	.skip 4
+	.word 0x0
+
+	.skip 4
+	.word 0x0
+
+	.skip 4
+	.word 0x0
+
+	.skip 4
+	.word 0x0
+
+	.skip 4 
+	.word 0x0
+
+	.skip 4
+	.word 0x0
+
+	.skip 4
+	.word 0x0
+
+	.skip 4
+	.word 0x0
+
+	.skip 4
+	.word 0x0
+
+	.skip 4
+	.word 0x0
+
+
+
+
