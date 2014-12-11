@@ -373,7 +373,8 @@ continue_reading:
 	@le a distancia pelo registrador psr
 	ldr r1, =GPIO_DR
 	ldr r2, [r1]
-	bic r2, r2, =SONAR_DATA_MASK
+	ldr r3, =SONAR_DATA_MASK
+	bic r2, r2, r3
 
 	mov r0, r2
 
@@ -394,9 +395,10 @@ delay:
 	
 	stmfd sp!, {r4 - r12}
 	mov r4, #0
+	ldr r5, =DELAY_ITERACTIONS
 for3:
 	
-	cmp r4, =DELAY_ITERACTIONS
+	cmp r4, r5
 	beq end_for3
 	add r4, r4, #1
 	b for3
@@ -500,7 +502,8 @@ SET_MOTORS_SPEED:
 	@seta os motor write para 1 e seta as velocidades
 	ldr r3, =GPIO_DR
 	ldr r2, [r3]
-	bic r2, r2, =SET_MOTORS_MASK
+	ldr r4, =SET_MOTORS_SPEED
+	bic r2, r2, r4
 	orr r2, r2, r0
 	orr r2, r2, r1
 	orr r2, r2, #MOTORS_WRITE
