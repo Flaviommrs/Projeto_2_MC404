@@ -358,7 +358,7 @@ READ_SONAR:
 flag_check:
 
 	@checa a flag
-	ldr r1, =GPIO_PSR
+	ldr r1, =GPIO_DR
 	ldr r2, [r1]
 	bic r2, r2, #FLAG_READ_MASK
 	cmp r2, #0x1
@@ -371,7 +371,7 @@ flag_check:
 continue_reading:
 
 	@le a distancia pelo registrador psr
-	ldr r1, =GPIO_PSR
+	ldr r1, =GPIO_DR
 	ldr r2, [r1]
 	bic r2, r2, #SONAR_DATA_MASK
 
@@ -393,8 +393,6 @@ end_of_read_sonnars:
 delay:
 	
 	stmfd sp!, {r4 - r12}
-
-delay:	
 	mov r4, #0
 for3:
 	
@@ -406,7 +404,6 @@ for3:
 end_for3:
 	
 	ldmfd sp!, {r4 - r12}
-
 	mov pc, lr
 	
 
@@ -596,11 +593,8 @@ go_to_user:
 	orr r5, r5, #USER_NUMBER
 	msr CPSR_c, r5
 
-	@desloca para o lr do usuario o valor do pc atual mais 8
-	mov lr, [pc, #8]
-
 	@pula para a função do usuario
-	bx r4
+	blx r4
 
 	@chama system call que fara com que o modo volte pa supervisor quando a função do usuario acabar
 	mov r7, RETURN_TO_SUPERVISOR_NUMBER
