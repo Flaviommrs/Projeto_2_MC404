@@ -28,6 +28,7 @@
 @Stack Pointers para o usuario e o superusuario
 .set USER_STK,                 0x78802000
 .set SUPER_STK,                0x7A802000
+.set IRQ_STK,                  0x7FFFFFFF
 
 @Endereço de onde vai começar o codigo do usuario
 .set USER_CODE,                0x77802000
@@ -47,6 +48,7 @@
 @Numeros dos Usuarios
 .set USER_NUMBER,             0x10
 .set SYSTEM_NUMBER,           0x1F
+.set IRQ_NUMBER,  0x12
 
 @Mascaras para leitura e escrita no GPIO
 .set SONAR_ID_SHIFT,          0x2
@@ -163,7 +165,6 @@ SET_TZIC:
 	@instrucao msr - habilita interrupcoes
 	msr  CPSR_c, #0x13       @ SUPERVISOR mode, IRQ/FIQ enabled
 
-
 SET_GPIO:
 
 	@Configura quais pinos são de entrada e quais são de saida
@@ -176,6 +177,15 @@ SET_STK_POINTERS:
 	@Configura as stack
 	ldr r13, =SUPER_STK
 
+	@Altera para o modo de IRQ
+	mrs r0, CPSR
+	bic r0, r0, #SYSTEM_NUMBER
+	orr r0, r0, #IRQ_NUMBER
+	msr CPSR_c, r0
+
+	@Configura a stack do Superusuario IRQ
+	ldr r13, =IRQ_STK
+	
 	@Altera o usuario de Supervisor para System
 	mrs r0, CPSR
 	bic r0, r0, #SYSTEM_NUMBER
@@ -525,6 +535,12 @@ end_of_set_motors:
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 RETURN_TO_SUPERVISOR:
 
+	@muda de Supervisor para o modo IRQ
+	mrs r5, CPSR
+	bic r5, r5, #SYSTEM_NUMBER
+	orr r5, r5, #IRQ_NUMBER
+	msr CPSR_c, r5
+	
 	mov pc, lr
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -576,8 +592,8 @@ go_to_user:
 
 	@altera para modo de usuario
 	mrs r5, CPSR
-	bic r5, r5, #0x1F
-	orr r5, r5, #0x10
+	bic r5, r5, #SYSTEM_NUMBER
+	orr r5, r5, #USER_NUMBER
 	msr CPSR_c, r5
 
 	@desloca para o lr do usuario o valor do pc atual mais 8
