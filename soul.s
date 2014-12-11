@@ -210,25 +210,25 @@ SET_STK_POINTERS:
 SUPERVISOR_HANDLER:
 
 	@Confere qual system call foi feita
-	cmp r7, GET_TIME_NUMBER
+	cmp r7, #GET_TIME_NUMBER
 	beq GET_TIME
 
-	cmp r7, SET_TIME_NUMBER
+	cmp r7, #SET_TIME_NUMBER
 	beq SET_TIME
 
-	cmp r7, SET_ALARM_NUMBER
+	cmp r7, #SET_ALARM_NUMBER
 	beq SET_ALARM
 
-	cmp r7, READ_SONAR_NUMBER
+	cmp r7, #READ_SONAR_NUMBER
 	beq READ_SONAR
 
-	cmp r7, SET_MOTOR_SPEED_NUMBER
+	cmp r7, #SET_MOTOR_SPEED_NUMBER
 	beq SET_MOTOR_SPEED
 
-	cmp r7, SET_MOTORS_SPEED_NUMBER
+	cmp r7, #SET_MOTORS_SPEED_NUMBER
 	beq SET_MOTORS_SPEED
 
-	cmp r7, RETURN_TO_SUPERVISOR_NUMBER
+	cmp r7, #RETURN_TO_SUPERVISOR_NUMBER
 	beq RETURN_TO_SUPERVISOR
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -263,14 +263,14 @@ SET_ALARM:
 
 	@verifica se o numero maxumo de alarmes foi atingido
 	ldr r4, =ACTIVE_ALARMS
-	ldr r4, [r4]
+	ldr r5, [r4]
 
-	cmp MAX_ALARMS, r4
+	cmp r5, #MAX_ALARMS
 	beq MAX_ALARM_NUMBER_REACHED
 
 	@adiciona mais um no numero de alarmes ativos
-	add r4, r4, #1
-	str r4, =ACTIVE_ALARMS
+	add r5, r5, #1
+	str r5, [r4]
 
 	mov r2, #0              @variavel de indução
 	ldr r5, =ALARM_VECTOR   @endereço inicial do vetor de alarmes
@@ -373,7 +373,7 @@ continue_reading:
 	@le a distancia pelo registrador psr
 	ldr r1, =GPIO_DR
 	ldr r2, [r1]
-	bic r2, r2, #SONAR_DATA_MASK
+	bic r2, r2, =SONAR_DATA_MASK
 
 	mov r0, r2
 
@@ -396,7 +396,7 @@ delay:
 	mov r4, #0
 for3:
 	
-	cmp r4, #DELAY_ITERACTIONS
+	cmp r4, =DELAY_ITERACTIONS
 	beq end_for3
 	add r4, r4, #1
 	b for3
@@ -500,7 +500,7 @@ SET_MOTORS_SPEED:
 	@seta os motor write para 1 e seta as velocidades
 	ldr r3, =GPIO_DR
 	ldr r2, [r3]
-	bic r2, r2, #SET_MOTORS_MASK
+	bic r2, r2, =SET_MOTORS_MASK
 	orr r2, r2, r0
 	orr r2, r2, r1
 	orr r2, r2, #MOTORS_WRITE
@@ -508,7 +508,7 @@ SET_MOTORS_SPEED:
 
 	@seta os motor write para 0
 	ldr r2, [r3]
-	bic r2, r2, @MOTORS_WRITE
+	bic r2, r2, #MOTORS_WRITE
 	str r2, [r3]
 
 	mov r0, #0
@@ -561,12 +561,12 @@ IRQ_HANDLER:
 for2:
 
 	@verifica se a umtima oteração ja foi feita
-	cmp r2, #MAX_ALARM
+	cmp r2, #MAX_ALARMS
 	beq end_of_for2
 
 	@verifica se a posição no vetor nao é uma posição livre
 	ldr r4, [r3, #4]
-	cmp r4, 0x0
+	cmp r4, #0x0
 	beq continue_for
 
 	@compara cada tempo de cada alarme de dentro do vetor de alarmes com o tempo atual do sistema
@@ -597,8 +597,8 @@ go_to_user:
 	blx r4
 
 	@chama system call que fara com que o modo volte pa supervisor quando a função do usuario acabar
-	mov r7, RETURN_TO_SUPERVISOR_NUMBER
-	svc r0, 0x0
+	mov r7, #RETURN_TO_SUPERVISOR_NUMBER
+	svc 0x0
 
 	ldmfd sp!, {r0 - r4}
 
@@ -608,8 +608,9 @@ go_to_user:
 	sub r6, r6, #1
 	str r6, [r4]
 
-	@libera o espaço do alarme 
-	str 0x0, [r3, #4]
+	@libera o espaço do alarme
+	mov r6, #0x0
+	str r6, [r3, #4]
 
 	add r2, r2, #1
 	add r3, r3, #8
