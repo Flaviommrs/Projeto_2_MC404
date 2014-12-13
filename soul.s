@@ -48,7 +48,8 @@
 @Numeros dos Usuarios
 .set USER_NUMBER,             0x10
 .set SYSTEM_NUMBER,           0x1F
-.set IRQ_NUMBER,  0x12
+.set IRQ_NUMBER,              0x12
+.set SUPERVISOR_NUMBER,       0x13
 
 @Mascaras para leitura e escrita no GPIO
 .set SONAR_ID_SHIFT,          0x2
@@ -108,6 +109,40 @@ RESET_HANDLER:
 	@Set interrupt table base address on coprocessor 15.
 	ldr r0, =interrupt_vector
 	mcr p15, 0, r0, c12, c0, 0
+
+SET_STACKS:
+	@muda para modo de supervisor
+	mrs r0, CPSR
+	bic r0, r0, #SYSTEM_NUMBER
+	orr r0, r0, #SUPERVISOR_NUMBER
+	msr CPSR_c, r0
+
+	@Configura a stack do supervisor
+	ldr r13, =SUPER_STK
+
+	@Altera para o modo de IRQ
+	mrs r0, CPSR
+	bic r0, r0, #SYSTEM_NUMBER
+	orr r0, r0, #IRQ_NUMBER
+	msr CPSR_c, r0
+
+	@Configura a stack do Superusuario IRQ
+	ldr r13, =IRQ_STK
+
+	@Altera o usuario de Supervisor para System
+	mrs r0, CPSR
+	bic r0, r0, #SYSTEM_NUMBER
+	orr r0, r0, #SYSTEM_NUMBER
+	msr CPSR_c, r0
+
+	@Configura a stack do usuario
+	ldr r13, =USER_STK
+
+	@volta para supervisor para continuar as configurações
+	mrs r0, CPSR
+	bic r0, r0, #SYSTEM_NUMBER
+	orr r0, r0, #SUPERVISOR_NUMBER
+	msr CPSR_c, r0
 
 SET_GPT:
 	@Configura o GPT
@@ -172,28 +207,7 @@ SET_GPIO:
 	ldr r1, =GPIO_INIT        @Move para r1 a configuração de entradas e saidas do GPIO
 	str r1, [r0]
 
-SET_STK_POINTERS:
-
-	@Configura as stack
-	ldr r13, =SUPER_STK
-
-	@Altera para o modo de IRQ
-	mrs r0, CPSR
-	bic r0, r0, #SYSTEM_NUMBER
-	orr r0, r0, #IRQ_NUMBER
-	msr CPSR_c, r0
-
-	@Configura a stack do Superusuario IRQ
-	ldr r13, =IRQ_STK
-	
-	@Altera o usuario de Supervisor para System
-	mrs r0, CPSR
-	bic r0, r0, #SYSTEM_NUMBER
-	orr r0, r0, #SYSTEM_NUMBER
-	msr CPSR_c, r0
-
-	@Configura a stack do usuario
-	ldr r13, =USER_STK
+GO_TO_USER_CODE:
 
 	@Altera para modo de usuario
 	mrs r0, CPSR
@@ -588,7 +602,7 @@ go_to_user:
 	@coloca o endereço da função a ser chamada pelo sistema quando o alarme for ativado em r4
 	ldr r4, [r3, #4]
 
-	stmfd sp!, {r0 - r4}
+	stmfd sp!, {r0 - r4, lr, SPSR}
 
 	@altera para modo de usuario
 	mrs r5, CPSR
@@ -603,7 +617,7 @@ go_to_user:
 	mov r7, #RETURN_TO_SUPERVISOR_NUMBER
 	svc 0x0
 
-	ldmfd sp!, {r0 - r4}
+	ldmfd sp!, {r0 - r4, lr, SPSR}
 
 	@diminui um no numero de alarmes ativos
 	ldr r4, =ACTIVE_ALARMS
