@@ -602,7 +602,7 @@ go_to_user:
 	@coloca o endereço da função a ser chamada pelo sistema quando o alarme for ativado em r4
 	ldr r4, [r3, #4]
 
-	stmfd sp!, {r0 - r4, lr, SPSR}
+	stmfd sp!, {r0 - r4, lr}
 
 	@altera para modo de usuario
 	mrs r5, CPSR
@@ -617,7 +617,7 @@ go_to_user:
 	mov r7, #RETURN_TO_SUPERVISOR_NUMBER
 	svc 0x0
 
-	ldmfd sp!, {r0 - r4, lr, SPSR}
+	ldmfd sp!, {r0 - r4, lr}
 
 	@diminui um no numero de alarmes ativos
 	ldr r4, =ACTIVE_ALARMS
