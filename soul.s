@@ -602,6 +602,7 @@ go_to_user:
 	@coloca o endereço da função a ser chamada pelo sistema quando o alarme for ativado em r4
 	ldr r4, [r3, #4]
 
+	mrs r1, spsr               @ pega o SPSR e coloca em r1
 	stmfd sp!, {r0 - r4, lr}
 
 	@altera para modo de usuario
@@ -618,6 +619,7 @@ go_to_user:
 	svc 0x0
 
 	ldmfd sp!, {r0 - r4, lr}
+	msr spsr, r0          @Restaura o spsr de antes do alarme
 
 	@diminui um no numero de alarmes ativos
 	ldr r4, =ACTIVE_ALARMS
