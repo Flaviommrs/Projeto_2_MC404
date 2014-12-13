@@ -23,7 +23,7 @@
 .set GPIO_PSR,                 0x53F84008
 
 @Constantes de configuração do GPIO
-.set GPIO_INIT,                0xFFFC003E
+.set GPIO_INIT,                0xFFFC0037
 
 @Stack Pointers para o usuario e o superusuario
 .set USER_STK,                 0x78802000
@@ -385,7 +385,7 @@ invalid_id:
 	@caso o id seja invalido retorna -1
 	mov r0, #-1
 	
-end_of_read_sonnars:
+end_of_read_sonars:
 	
 	ldmfd sp!, {r4 - r12}
 
@@ -515,7 +515,7 @@ SET_MOTORS_SPEED:
 	str r2, [r3]
 
 	mov r0, #0
-	b ende_of_set_motors
+	b end_of_set_motors
 
 invalid_speed2:
 
@@ -606,7 +606,7 @@ go_to_user:
 	ldmfd sp!, {r0 - r4}
 
 	@diminui um no numero de alarmes ativos
-	ldr r4, ACTIVE_ALARMS
+	ldr r4, =ACTIVE_ALARMS
 	ldr r6, [r4]
 	sub r6, r6, #1
 	str r6, [r4]
