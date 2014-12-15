@@ -1,23 +1,20 @@
 #include "api_robot2.h" /* Robot control API */
 
+void turnR();
+void turnL();
+void dance();
+void stop();
+void straight();
+
 /* main function */
 void _start(void){
 
 	unsigned int distances[16];
-	int i = 0;
-	unsigned short a;
 	
-	//set_time(5);
-	for (i = 1; i <= 16; i++){
-	add_alarm(&get_time, i*3);
-	}
-	add_alarm(&get_time, 100);
-	//set_time(2);
-//	for (i = 0; i < 10000000; i++){	}
-	//set_motor_speed(10,10);
-//	set_motors_speed(63,63);
+	add_alarm(dance, 30);
+	/*
 	
-	/*while (1){
+	while (1){
 		distances[4] = read_sonar(4);
 		distances[3] = read_sonar(3);
 		if (distances[3] < 2000 || distances[4] < 2000){
@@ -29,16 +26,35 @@ void _start(void){
 		} else {
 			set_motors_speed(14,14); // andar em linha reta se nao tiver perto do obstaculo
 		}  
-	}*/
-	//a = get_time();
-	
+	}
+	*/
 	while (1){}
 }
 
-void girarD(){
-	set_motor_speed(10,0);
+void turnR(){
+	set_motors_speed(40,0);
 }
 
-void girarE(){
-	set_motor_speed(0,10);
+void turnL(){
+	set_motors_speed(0,40);
+}
+
+void dance(){
+	unsigned short time = get_time();
+	add_alarm(turnR, time);
+	add_alarm(turnL, time + 2);
+	add_alarm(turnR, time + 4);
+	add_alarm(turnL, time + 6);
+	add_alarm(stop, time + 8);
+	add_alarm(straight, time + 9);
+	add_alarm(dance, time + 13);	
+}
+
+void stop(){
+	set_motors_speed(0,0);
+}
+
+void straight(){
+	set_motors_speed(15,15);
+	
 }
