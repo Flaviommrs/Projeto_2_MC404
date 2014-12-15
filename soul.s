@@ -1,4 +1,5 @@
 .text
+.text
 .org 0x0
 .section .iv,"a"
 
@@ -60,8 +61,8 @@
 .set SET_MOTOR_ZERO_MASK,     0x1FC0000
 .set SET_MOTOR_ONE_MASK,      0xFC000000
 .set SET_MOTORS_MASK,         0xFFFC0000
-.set MOTOR_ZERO_SPEED_SHIFT,          18
-.set MOTOR_ONE_SPEED_SHIFT,           25
+.set MOTOR_ZERO_SPEED_SHIFT,          19
+.set MOTOR_ONE_SPEED_SHIFT,           26
 .set MOTOR_WRITE_ZERO,        0x40000
 .set MOTOR_WRITE_ONE,         0x2000000
 .set MOTORS_WRITE,            0x2040000
@@ -70,7 +71,7 @@
 .set DELAY_ITERACTIONS,            20000
 
 @Motors
-.set MAXIMUM_SPEED,           0x2F
+.set MAXIMUM_SPEED,           63
 
 _start:
 
@@ -264,7 +265,7 @@ SET_TIME:
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 SET_ALARM:
-
+ 
 	stmfd sp!, {r4 - r12}
 
 	@verifica se o tempo pedido para o alarme é valido
@@ -303,8 +304,8 @@ for:
 
 store_alarm:
 	
-	str r1, [r6]
-	str r0, [r6, #4]
+	str r1, [r5]
+	str r0, [r5, #4]
 
 end_of_for:
 
@@ -332,7 +333,7 @@ END_OF_SET_TIME:
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 READ_SONAR:
 
-	stmfd sp!, {r4 - r12}
+	stmfd sp!, {r4 - r12, lr}
 
 	@verifica se o id passado é valido
 	cmp r0, #15
@@ -400,7 +401,7 @@ invalid_id:
 	
 end_of_read_sonars:
 	
-	ldmfd sp!, {r4 - r12}
+	ldmfd sp!, {r4 - r12, lr}
 
 	movs pc, lr
 
@@ -471,7 +472,7 @@ SET_MOTOR_ONE:
 
 	@desloca a velocidade para o liugar da velocidade do motor 1
 	lsl r1, r1, #MOTOR_ONE_SPEED_SHIFT
-
+	
 	@seta o motor write 1 para 0 e seta a nova velocidade do motor 1
 	ldr r3, =GPIO_DR
 	ldr r2, [r3]
@@ -548,11 +549,15 @@ end_of_set_motors:
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 RETURN_TO_SUPERVISOR:
 
+	mov r4, lr
+	
 	@muda de Supervisor para o modo IRQ
 	mrs r5, CPSR
 	bic r5, r5, #SYSTEM_NUMBER
 	orr r5, r5, #IRQ_NUMBER
 	msr CPSR_c, r5
+	
+	mov lr, r4
 	
 	mov pc, lr
 
@@ -618,7 +623,7 @@ go_to_user:
 	svc 0x0
 
 	ldmfd sp!, {r0 - r4, lr}
-	msr spsr, r0          @Restaura o spsr de antes do alarme
+	msr spsr, r1          @Restaura o spsr de antes do alarme
 
 	@diminui um no numero de alarmes ativos
 	ldr r4, =ACTIVE_ALARMS

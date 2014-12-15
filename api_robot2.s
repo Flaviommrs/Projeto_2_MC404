@@ -12,12 +12,16 @@
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 set_motor_speed:
 
-	stmfd sp!, {r7, lr} 
+	stmfd sp!, {r4,r7, lr} 
+	
+	mov r4, r1
+	mov r1, r0
+	mov r0, r4
 
 	mov r7, #9
 	svc 0x0
 	
- 	ldmfd sp!, {r7, pc}
+ 	ldmfd sp!, {r4,r7, pc}
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 set_motors_speed:
