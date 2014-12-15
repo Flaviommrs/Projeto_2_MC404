@@ -53,13 +53,13 @@
 
 @Mascaras para leitura e escrita no GPIO
 .set SONAR_ID_SHIFT,          0x2
-.set MUX_MASK,                0x2C
+.set MUX_MASK,                0x3C
 .set TRIGGER_MASK,            0x2
 .set FLAG_READ_MASK,          0xFFFFFFFE
 .set SONAR_DATA_MASK,         0xFFFE001F
-.set SET_MOTOR_ZERO_MASK,     0xFE0000
-.set SET_MOTOR_ONE_MASK,      0xFE000000
-.set SET_MOTORS_MASK,         0xFFFE0000
+.set SET_MOTOR_ZERO_MASK,     0x1FC0000
+.set SET_MOTOR_ONE_MASK,      0xFC000000
+.set SET_MOTORS_MASK,         0xFFFC0000
 .set MOTOR_ZERO_SPEED_SHIFT,          18
 .set MOTOR_ONE_SPEED_SHIFT,           25
 .set MOTOR_WRITE_ZERO,        0x40000
@@ -104,7 +104,6 @@ interrupt_vector:
 	str r0,[r2]
 
 RESET_HANDLER:
-
 
 	@Set interrupt table base address on coprocessor 15.
 	ldr r0, =interrupt_vector
@@ -516,7 +515,7 @@ SET_MOTORS_SPEED:
 	@seta os motor write para 1 e seta as velocidades
 	ldr r3, =GPIO_DR
 	ldr r2, [r3]
-	ldr r4, =SET_MOTORS_SPEED
+	ldr r4, =SET_MOTORS_MASK
 	bic r2, r2, r4
 	orr r2, r2, r0
 	orr r2, r2, r1
