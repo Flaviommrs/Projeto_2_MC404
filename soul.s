@@ -24,7 +24,7 @@
 .set GPIO_PSR,                 0x53F84008
 
 @Constantes de configuração do GPIO
-.set GPIO_INIT,                0xFFFC0037
+.set GPIO_INIT,                0xFFFC003E
 
 @Stack Pointers para o usuario e o superusuario
 .set USER_STK,                 0x78802000
@@ -57,7 +57,7 @@
 .set MUX_MASK,                0x3C
 .set TRIGGER_MASK,            0x2
 .set FLAG_READ_MASK,          0xFFFFFFFE
-.set SONAR_DATA_MASK,         0xFFFE001F
+.set SONAR_DATA_MASK,         0xFFFC003F
 .set SET_MOTOR_ZERO_MASK,     0x1FC0000
 .set SET_MOTOR_ONE_MASK,      0xFC000000
 .set SET_MOTORS_MASK,         0xFFFC0000
@@ -346,12 +346,10 @@ READ_SONAR:
 	lsl r0, r0, #SONAR_ID_SHIFT       @desloca o id do sonar para esquerda duas posições
 
 	@Coloca o ID do sonar dentro do registrador DR
-	bic r2,r2, #MUX_MASK
-	orr r2,r2,r0
-	str r2, [r1]
-
 	@seta o trigger para 0
+	bic r2,r2, #MUX_MASK
 	bic r2, r2, #TRIGGER_MASK
+	orr r2,r2,r0
 	str r2, [r1]
 
 	bl delay
@@ -370,7 +368,7 @@ READ_SONAR:
 	str r2, [r1]
 	
 flag_check:
-
+	
 	@checa a flag
 	ldr r1, =GPIO_DR
 	ldr r2, [r1]
@@ -384,12 +382,14 @@ flag_check:
 	
 continue_reading:
 
-	@le a distancia pelo registrador psr
+	@le a distancia pelo registrador DR
 	ldr r1, =GPIO_DR
 	ldr r2, [r1]
 	ldr r3, =SONAR_DATA_MASK
 	bic r2, r2, r3
 
+	lsr r2, r2, #6
+	
 	mov r0, r2
 
 	b end_of_read_sonars
@@ -405,9 +405,11 @@ end_of_read_sonars:
 
 	movs pc, lr
 
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 delay:
 	
-	stmfd sp!, {r4 - r12}
+	stmfd sp!, {r4, r5}
 	mov r4, #0
 	ldr r5, =DELAY_ITERACTIONS
 for3:
@@ -419,7 +421,7 @@ for3:
 	
 end_for3:
 	
-	ldmfd sp!, {r4 - r12}
+	ldmfd sp!, {r4, r5}
 	mov pc, lr
 	
 

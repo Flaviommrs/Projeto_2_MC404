@@ -1,23 +1,25 @@
 #include "api_robot2.h" /* Robot control API */
 
-void turnR();
-void turnL();
-void dance();
-void stop();
-void straight();
+//void turnR();
+//void turnL();
+//void dance();
+//void stop();
+//void straight();
 
 /* main function */
 void _start(void){
 
 	unsigned int distances[16];
 	
-	add_alarm(dance, 30);
-	/*
+	/*	add_alarm(dance, 30);*/
 	
+	set_motors_speed(60, 60);
+
 	while (1){
+	        set_motors_speed(60, 60);
 		distances[4] = read_sonar(4);
 		distances[3] = read_sonar(3);
-		if (distances[3] < 2000 || distances[4] < 2000){
+		if (distances[3] < 1600 || distances[4] < 1600){
 			if (distances[3] < distances[4]){ // se a distancia da esq for menor...
 				set_motors_speed(0,14); // ... vira para a direita
 			} else {
@@ -27,10 +29,10 @@ void _start(void){
 			set_motors_speed(14,14); // andar em linha reta se nao tiver perto do obstaculo
 		}  
 	}
-	*/
-	while (1){}
+
 }
 
+/*
 void turnR(){
 	set_motors_speed(40,0);
 }
@@ -58,3 +60,4 @@ void straight(){
 	set_motors_speed(15,15);
 	
 }
+*/
