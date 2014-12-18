@@ -13,13 +13,13 @@ void _start(void){
 	
 	/*	add_alarm(dance, 30);*/
 	
-	set_motors_speed(60, 60);
+	set_motors_speed(30, 30);
 
 	while (1){
-	        set_motors_speed(60, 60);
+	        set_motors_speed(30, 30);
 		distances[4] = read_sonar(4);
 		distances[3] = read_sonar(3);
-		if (distances[3] < 1600 || distances[4] < 1600){
+		if (distances[3] < 1200 || distances[4] < 1200){
 			if (distances[3] < distances[4]){ // se a distancia da esq for menor...
 				set_motors_speed(0,14); // ... vira para a direita
 			} else {

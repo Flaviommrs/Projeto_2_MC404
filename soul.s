@@ -266,7 +266,7 @@ SET_TIME:
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 SET_ALARM:
  
-	stmfd sp!, {r4 - r12}
+	stmfd sp!, {r4 - r6}
 
 	@verifica se o tempo pedido para o alarme é valido
 	ldr r3, =CONTADOR
@@ -326,14 +326,14 @@ MAX_ALARM_NUMBER_REACHED:
 
 END_OF_SET_TIME:
 
-	ldmfd sp!, {r4 - r12}
+	ldmfd sp!, {r4 - r6}
 
 	movs pc, lr
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 READ_SONAR:
 
-	stmfd sp!, {r4 - r12, lr}
+	stmfd sp!,{lr}
 
 	@verifica se o id passado é valido
 	cmp r0, #15
@@ -401,7 +401,7 @@ invalid_id:
 	
 end_of_read_sonars:
 	
-	ldmfd sp!, {r4 - r12, lr}
+	ldmfd sp!, {lr}
 
 	movs pc, lr
 
@@ -427,8 +427,6 @@ end_for3:
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 SET_MOTOR_SPEED:
-
-	stmfd sp!, {r4 - r12}
 
 	@verifica se a velocidade é valida
 	cmp r1, #MAXIMUM_SPEED
@@ -497,14 +495,10 @@ invalid_motor:
 
 end_set_motor_speed:
 
-	ldmfd sp!, {r4 - r12}
-
 	movs pc, lr
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 SET_MOTORS_SPEED:
-
-	stmfd sp!, {r4 - r12}
 
 	cmp r0, #MAXIMUM_SPEED
 	bhi invalid_speed2
@@ -543,8 +537,6 @@ invalid_speed3:
 	mov r0, #-2
 
 end_of_set_motors:
-	
-	ldmfd sp!, {r4 - r12}
 
 	movs pc, lr
 
