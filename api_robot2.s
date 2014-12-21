@@ -10,7 +10,7 @@
 .align 4
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-set_motor_speed:
+set_motor_speed: @seta a velocidade de um motor
 
 	stmfd sp!, {r4,r7, lr} 
 	
@@ -24,7 +24,7 @@ set_motor_speed:
  	ldmfd sp!, {r4,r7, pc}
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-set_motors_speed:
+set_motors_speed: @ seta a velocidade dos dois motores
 
 	stmfd sp!, {r7, lr}
 	
@@ -34,7 +34,7 @@ set_motors_speed:
 	ldmfd sp!, {r7, pc}
 	
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-read_sonar:
+read_sonar:  @ leitura do sonar
 
 	stmfd sp!, {r7, lr}
 
@@ -44,7 +44,7 @@ read_sonar:
 	ldmfd sp!, {r7, pc}
 	
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-read_sonars:	
+read_sonars:  @ leitura d varios sonares
 
 	stmfd sp!, {r4-r5, lr}
 	mov r4, #0
@@ -66,7 +66,7 @@ end_of_loop:
 	ldmfd sp!, {r4-r5, pc}
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-add_alarm:
+add_alarm:   @ adiciona um alarme: programa um horario para a execucao d uma funcao
 
 	stmfd sp!, {r7, lr}
 	
@@ -77,7 +77,7 @@ add_alarm:
 	ldmfd sp!, {r7, pc}
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-get_time:
+get_time:  @ verifica o tempo atual
 
 	stmfd sp!, {r7, lr}
 	
@@ -88,7 +88,7 @@ get_time:
 	ldmfd sp!, {r7, pc}
 	
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-set_time:
+set_time:  @ configura um novo tempo
 
 	stmfd sp!, {r7, lr}
 	

@@ -1,77 +1,73 @@
 .text
-.text
 .org 0x0
-.section .iv,"a"
+.section .iv, "a"
 
-@Configurações do GPT
-.set GPT_CR,                   0x53FA0000
-.set GPT_PR,                   0x53FA0004
-.set GPT_OCR1,                 0x53FA0010
-.set GPT_IR,                   0x53FA000C
-.set GPT_SR,                   0x53FA0008
+@ Configuracoes do GPT
+.set GPT_CR,                     0x53FA0000
+.set GPT_PR,                     0x53FA0004
+.set GPT_OCR1,                   0x53FA0010
+.set GPT_IR,                     0x53FA000C
+.set GPT_SR,                     0x53FA0008
 
 @ Constantes para os registradores do TZIC
-.set TZIC_BASE,                0x0FFFC000
-.set TZIC_INTCTRL,             0x0
-.set TZIC_INTSEC1,             0x84
-.set TZIC_ENSET1,              0x104
-.set TZIC_PRIOMASK,            0xC
-.set TZIC_PRIORITY9,           0x424
+.set TZIC_BASE,                  0x0FFFC000
+.set TZIC_INTCTRL,               0x0
+.set TZIC_INTSEC1,               0x84
+.set TZIC_ENSET1,                0x104
+.set TZIC_PRIOMASK,              0xC
+.set TZIC_PRIORITY9,             0x424
 
-@Constantes com os resgistradores do GPIO
-.set GPIO_DR,                  0x53F84000
-.set GPIO_GDIR,                0x53F84004
-.set GPIO_PSR,                 0x53F84008
+@ Constantes com os registradores do GPIO
+.set GPIO_DR,                    0x53F84000
+.set GPIO_GDIR,                  0x53F84004
+.set GPIO_PSR,                   0x53F84008
 
-@Constantes de configuração do GPIO
-.set GPIO_INIT,                0xFFFC003E
+@ Constantes de configuracao do GPIO
+.set GPIO_INIT,                  0xFFFC003E
 
-@Stack Pointers para o usuario e o superusuario
-.set USER_STK,                 0x78802000
-.set SUPER_STK,                0x7A802000
-.set IRQ_STK,                  0x7FFFFFFF
+@ Stack Pointers para o usuario e o superusuario
+.set USER_STK,                   0x78802000
+.set SUPER_STK,                  0x7A802000
+.set IRQ_STK,                    0x7FFFFFFF
 
-@Endereço de onde vai começar o codigo do usuario
-.set USER_CODE,                0x77802000
+@ Endereco de onde vai comecar o codigo de usuario
+.set USER_CODE,                  0x77802000
 
-@Numero das System Calls
-.set GET_TIME_NUMBER,                  11
-.set SET_TIME_NUMBER,                  12
-.set SET_ALARM_NUMBER,                 13
-.set READ_SONAR_NUMBER,                 8
-.set SET_MOTOR_SPEED_NUMBER,            9
-.set SET_MOTORS_SPEED_NUMBER,          10
-.set RETURN_TO_SUPERVISOR_NUMBER,      14
+@ Numero das System Calls
+.set GET_TIME_NUMBER,            11
+.set SET_TIME_NUMBER,            12
+.set SET_ALARM_NUMBER,           13
+.set READ_SONAR_NUMBER,          8
+.set SET_MOTOR_SPEED_NUMBER,     9
+.set SET_MOTORS_SPEED_NUMBER,    10
+.set RETURN_TO_IRQ_NUMBER,       14
 
-@Constantes do Alarme
-.set MAX_ALARMS,                       16
+@ Constantes do alarme
+.set MAX_ALARMS,                 16
 
-@Numeros dos Usuarios
-.set USER_NUMBER,             0x10
-.set SYSTEM_NUMBER,           0x1F
-.set IRQ_NUMBER,              0x12
-.set SUPERVISOR_NUMBER,       0x13
+@ Numeros dos usuarios
+.set USER_NUMBER,                0x10
+.set SYSTEM_NUMBER,              0x1F
+.set IRQ_NUMBER,                 0x12
+.set SUPERVISOR_NUMBER,          0x13
 
-@Mascaras para leitura e escrita no GPIO
-.set SONAR_ID_SHIFT,          0x2
-.set MUX_MASK,                0x3C
-.set TRIGGER_MASK,            0x2
-.set FLAG_READ_MASK,          0xFFFFFFFE
-.set SONAR_DATA_MASK,         0xFFFC003F
-.set SET_MOTOR_ZERO_MASK,     0x1FC0000
-.set SET_MOTOR_ONE_MASK,      0xFC000000
-.set SET_MOTORS_MASK,         0xFFFC0000
-.set MOTOR_ZERO_SPEED_SHIFT,          19
-.set MOTOR_ONE_SPEED_SHIFT,           26
-.set MOTOR_WRITE_ZERO,        0x40000
-.set MOTOR_WRITE_ONE,         0x2000000
-.set MOTORS_WRITE,            0x2040000
+@ Mascaras para leitura e escrita no GPIO
+.set SONAR_ID_SHIFT,             0x2
+.set MUX_MASK,                   0x3C
+.set TRIGGER_MASK,               0x2
+.set FLAG_READ_MASK,             0xFFFFFFFE
+.set SONAR_DATA_MASK,            0xFFFC003F
+.set SET_MOTOR_ZERO_MASK,        0x1FC0000
+.set SET_MOTOR_ONE_MASK,         0xFE000000
+.set SET_MOTORS_MASK,            0xFFFC0000
+.set MOTOR_ZERO_SPEED_SHIFT,     19
+.set MOTOR_ONE_SPEED_SHIFT,      26
 
-@Delay
-.set DELAY_ITERACTIONS,            20000
+@ Delay
+.set DELAY_ITERACTIONS,          20000
 
-@Motors
-.set MAXIMUM_SPEED,           63
+@ Motors
+.set MAXIMUM_SPEED,              63
 
 _start:
 
@@ -100,55 +96,55 @@ interrupt_vector:
 .org 0x100
 
 	@ Zera o contador
-	ldr r2, =CONTADOR  @lembre-se de declarar esse contador em uma secao de dados!
-	mov r0,#0
-	str r0,[r2]
+	ldr r2, =CONTADOR
+	mov r0, #0
+	str r0, [r2]
 
 RESET_HANDLER:
 
-	@Set interrupt table base address on coprocessor 15.
+	@ Set interrupt table base address on coprocessor 15.
 	ldr r0, =interrupt_vector
 	mcr p15, 0, r0, c12, c0, 0
 
 SET_STACKS:
-	@muda para modo de supervisor
+
+	@ Muda para modo de supervisor
 	mrs r0, CPSR
 	bic r0, r0, #SYSTEM_NUMBER
 	orr r0, r0, #SUPERVISOR_NUMBER
 	msr CPSR_c, r0
 
-	@Configura a stack do supervisor
+	@ Configura a stack do supervisor
 	ldr r13, =SUPER_STK
 
-	@Altera para o modo de IRQ
+	@ Altera para o modo IRQ
 	mrs r0, CPSR
 	bic r0, r0, #SYSTEM_NUMBER
 	orr r0, r0, #IRQ_NUMBER
 	msr CPSR_c, r0
 
-	@Configura a stack do Superusuario IRQ
+	@ Configura a stack do Superusuario IRQ
 	ldr r13, =IRQ_STK
 
-	@Altera o usuario de Supervisor para System
+	@ Altera para System
 	mrs r0, CPSR
-	bic r0, r0, #SYSTEM_NUMBER
 	orr r0, r0, #SYSTEM_NUMBER
 	msr CPSR_c, r0
 
-	@Configura a stack do usuario
+	@ Configura a stack do usuario
 	ldr r13, =USER_STK
 
-	@volta para supervisor para continuar as configurações
+	@ Volta para supervisor para continuar as configuracoes
 	mrs r0, CPSR
 	bic r0, r0, #SYSTEM_NUMBER
 	orr r0, r0, #SUPERVISOR_NUMBER
 	msr CPSR_c, r0
 
 SET_GPT:
-	@Configura o GPT
-
+	
+	@ Configura GPT
 	ldr r0, =GPT_CR
-	mov r1, #0x00000041
+	mov r1, #0x41
 	str r1, [r0]
 
 	ldr r0, =GPT_PR
@@ -166,8 +162,6 @@ SET_GPT:
 SET_TZIC:
 
 	@ Liga o controlador de interrupcoes
-	@ R1 <= TZIC_BASE
-
 	ldr r1, =TZIC_BASE
 
 	@ Configura interrupcao 39 do GPT como nao segura
@@ -197,33 +191,33 @@ SET_TZIC:
 	mov r0, #1
 	str r0, [r1, #TZIC_INTCTRL]
 
-	@instrucao msr - habilita interrupcoes
-	msr  CPSR_c, #0x13       @ SUPERVISOR mode, IRQ/FIQ enabled
+	@ Instrucao msr - habilita interrupcoes
+	msr CPSR_c, #SUPERVISOR_NUMBER
 
 SET_GPIO:
 
-	@Configura quais pinos são de entrada e quais são de saida
-	ldr r0, =GPIO_GDIR        @Move para r0 o endereço do registrador DIR  do GPIO
-	ldr r1, =GPIO_INIT        @Move para r1 a configuração de entradas e saidas do GPIO
+	@ Configura quais pinos sao de entrada e quais sao de saida
+	ldr r0, =GPIO_GDIR
+	ldr r1, =GPIO_INIT
 	str r1, [r0]
 
 GO_TO_USER_CODE:
 
-	@Altera para modo de usuario
+	@ Altera para modo de usuario
 	mrs r0, CPSR
 	bic r0, r0, #SYSTEM_NUMBER
 	orr r0, r0, #USER_NUMBER
 	msr CPSR_c, r0
 
-	@Pula para o endereço correspondente ao começo do codigo do usuario
+	@ Pula para o endereco correspondente ao comeco do codigo do usuario
 	ldr r0, =USER_CODE
 	bx r0
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 SUPERVISOR_HANDLER:
 
-	@Confere qual system call foi feita
+	@ Confere qual syscall foi feita
 	cmp r7, #GET_TIME_NUMBER
 	beq GET_TIME
 
@@ -242,263 +236,231 @@ SUPERVISOR_HANDLER:
 	cmp r7, #SET_MOTORS_SPEED_NUMBER
 	beq SET_MOTORS_SPEED
 
-	cmp r7, #RETURN_TO_SUPERVISOR_NUMBER
-	beq RETURN_TO_SUPERVISOR
+	cmp r7, #RETURN_TO_IRQ_NUMBER
+	beq RETURN_TO_IRQ
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-GET_TIME:
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-	@Pega o tempo da memoria
+GET_TIME: @ verifica o tempo atual
+	
+	@ Pega o tempo da memoria
 	ldr r1, =CONTADOR
 	ldr r0, [r1]
 
 	movs pc, lr
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-SET_TIME:
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-	@seta o tempo do sistema
+SET_TIME: @ configura um novo tempo
+
+	@ Seta o tempo do sistema
 	ldr r1, =CONTADOR
 	str r0, [r1]
 
 	movs pc, lr
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-SET_ALARM:
- 
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+SET_ALARM:  @ adiciona um alarme: programa um horario para a execucao d uma funcao
+
 	stmfd sp!, {r4 - r6}
 
-	@verifica se o tempo pedido para o alarme é valido
+	@ Verifica se o tempo pedido para o alarme eh valido
 	ldr r3, =CONTADOR
 	ldr r3, [r3]
 
 	cmp r3, r1
-	bhi INVALID_TIME
+	bhi invalid_time
 
-	@verifica se o numero maxumo de alarmes foi atingido
+	@ Verifica se o numero maximo de alarmes foi atingido
 	ldr r4, =ACTIVE_ALARMS
 	ldr r5, [r4]
-
 	cmp r5, #MAX_ALARMS
-	beq MAX_ALARM_NUMBER_REACHED
+	beq max_alarm_number_reached
 
-	@adiciona mais um no numero de alarmes ativos
+	@ Adiciona mais um no numero de alarmes ativos
 	add r5, r5, #1
 	str r5, [r4]
 
-	mov r2, #0              @variavel de indução
-	ldr r5, =ALARM_VECTOR   @endereço inicial do vetor de alarmes
+	@ Encontra a proxima posicao livre do vetor
+	ldr r5, =ALARM_VECTOR @ endereco inicil do vetor de alarmes
+	mov r2, #0            @ variavel de inducao
+	
+for_alarm_vector:
+	cmp r2, #MAX_ALARMS
+	beq end_of_for_alarm_vector
 
-for:
-	cmp r2, #MAX_ALARMS             @verifica se ja foi feita a ultima iteração
-	beq end_of_for
+	ldr r6, [r5, #4]     @ carrega campo endereco da struct
 
-	ldr r6, [r5, #4]       
+	cmp r6, #0           @ verifica se o endereco eh zero, o que indica que a posicao esta livre
+	beq store_alarm      @ se estiver livre, adiciona alarme
 
-	cmp r6, #0x0            @verifica se o campo de endereço da struct tem o valor de flag livre, ou seja, ve se a posição esta livre
-	beq store_alarm        
-
-	add r5, r5, #8          @vai para a proxima posição no vetor de alarmes
-	add r2, r2, #1          @incrementa um na variavel de indução
-	b for
+	add r5, r5, #8       @ vai para a proxima posicao no vetor de alarmes
+	add r2, r2, #1       @ incrementa variavel de inducao
+	b for_alarm_vector
 
 store_alarm:
-	
 	str r1, [r5]
 	str r0, [r5, #4]
 
-end_of_for:
+end_of_for_alarm_vector:
+	mov r0, #0           @ retorna 0 caso o alarme tenha sido adicionado corretamente
+	b end_of_set_alarm
 
-	@retorna 0 caso o alarme tenha sio adicionado corretamente
-	mov r0, #0
-	b END_OF_SET_TIME
+invalid_time:
+	mov r0, #-2          @ retorna -2 caso o tempo seja invalido
+	b end_of_set_alarm
 
-INVALID_TIME:
+max_alarm_number_reached:
+	mov r0, #-1          @ retorna -1 cado o numero maximo de alarmes ativos tenha sido atingido
 
-	@retorna -2 caso o tempo pedido não seja valido
-	mov r0, #-2
-	b END_OF_SET_TIME
-
-MAX_ALARM_NUMBER_REACHED:
-
-	@retorna -1 caso o numero maximo de alarmes ativos tenha sido atingido
-	mov r0, #-1
-
-END_OF_SET_TIME:
-
+end_of_set_alarm:
 	ldmfd sp!, {r4 - r6}
 
 	movs pc, lr
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-READ_SONAR:
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-	stmfd sp!,{lr}
+READ_SONAR: @ leitura do sonar
 
-	@verifica se o id passado é valido
+	stmfd sp!, {lr}
+
+	@ Verifica se o id passado eh valido
 	cmp r0, #15
 	bhi invalid_id
 
-	@coloca em r2 o valor atual do gpio
+	@ Coloca em r2 o valor atual do GPIO
 	ldr r1, =GPIO_DR
 	ldr r2, [r1]
 
-	lsl r0, r0, #SONAR_ID_SHIFT       @desloca o id do sonar para esquerda duas posições
-
-	@Coloca o ID do sonar dentro do registrador DR
-	@seta o trigger para 0
-	bic r2,r2, #MUX_MASK
+	@ Coloca o id do sonar dentro do registrador DR
+	lsl r0, r0, #SONAR_ID_SHIFT       @ desloca o id do sonar para a esquerda duas posicoes
+	bic r2, r2, #MUX_MASK
+	orr r2, r2, r0
+	
+	@ Seta o trigger para 0
 	bic r2, r2, #TRIGGER_MASK
-	orr r2,r2,r0
 	str r2, [r1]
 
 	bl delay
 
-	@seta o trigger para 1
+	@ Seta o trigger para 1
 	ldr r2, [r1]
-	bic r2, r2, #TRIGGER_MASK
 	orr r2, r2, #TRIGGER_MASK
 	str r2, [r1]
 
 	bl delay
 
-	@seta o trigger para 0
+	@ Seta o trigger para 0
 	ldr r2, [r1]
 	bic r2, r2, #TRIGGER_MASK
 	str r2, [r1]
-	
+
 flag_check:
-	
-	@checa a flag
+	@ Checa a flag
 	ldr r1, =GPIO_DR
 	ldr r2, [r1]
 	bic r2, r2, #FLAG_READ_MASK
-	cmp r2, #0x1
+	cmp r2, #1
 
-	@faz o delay de 15 ms caso a flag nao seja 1
+	@ Delay, caso a flag nao seja 1
 	beq continue_reading
 	bl delay
 	b flag_check
-	
-continue_reading:
 
-	@le a distancia pelo registrador DR
+continue_reading:
+	@ Le a distancia pelo registrador DR
 	ldr r1, =GPIO_DR
 	ldr r2, [r1]
 	ldr r3, =SONAR_DATA_MASK
 	bic r2, r2, r3
 
 	lsr r2, r2, #6
-	
-	mov r0, r2
+	mov r0, r2        @coloca a distancia no r0 para retorno
 
-	b end_of_read_sonars
-	
-invalid_id:	
-
-	@caso o id seja invalido retorna -1
-	mov r0, #-1
-	
-end_of_read_sonars:
-	
-	ldmfd sp!, {lr}
-
-	movs pc, lr
-
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+	b end_of_read_sonar
 
 delay:
-	
 	stmfd sp!, {r4, r5}
 	mov r4, #0
 	ldr r5, =DELAY_ITERACTIONS
-for3:
-	
+
+for_delay:
 	cmp r4, r5
-	beq end_for3
+	beq end_of_for_delay
 	add r4, r4, #1
-	b for3
-	
-end_for3:
-	
+	b for_delay
+
+end_of_for_delay:
 	ldmfd sp!, {r4, r5}
 	mov pc, lr
-	
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-SET_MOTOR_SPEED:
+invalid_id:
+	mov r0, #-1       @ retorna -1 caso o id seja invalido
 
-	@verifica se a velocidade é valida
+end_of_read_sonar:
+	ldmfd sp!, {lr}
+	movs pc, lr
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+SET_MOTOR_SPEED: @seta a velocidade de um motor
+
+	@ Verifica se a velocidade eh valida
 	cmp r1, #MAXIMUM_SPEED
 	bhi invalid_speed
 
-	@verifica se é o motor 0
+	@ Verifica se eh o motor 0
 	cmp r0, #0
-	beq SET_MOTOR_ZERO
+	beq set_motor_zero
 
-	@verifica se é o motor 1
+	@Verifica se eh o motor 1
 	cmp r0, #1
-	beq SET_MOTOR_ONE
+	beq set_motor_one
 
 	b invalid_motor
 
 invalid_speed:
-
 	mov r0, #-2
 	b end_set_motor_speed
-	
-SET_MOTOR_ZERO:
 
-	@desloca a velocidade no numero de bits para ficar na posição correta
+set_motor_zero:
+	@ Desloca a velocidade para ficar na posicao correta
 	lsl r1, r1, #MOTOR_ZERO_SPEED_SHIFT
 
-	@seta o motor write para 1 e a velocidade do motor zero 
+	@ Seta a velocidade do motor zero e write para zero
 	ldr r3, =GPIO_DR
 	ldr r2, [r3]
 	bic r2, r2, #SET_MOTOR_ZERO_MASK
 	orr r2, r2, r1
-	orr r2, r2, #MOTOR_WRITE_ZERO
 	str r2, [r3]
 
-	@seta o motor write paa 0 novamente
-	ldr r2, [r3]
-	bic r2, r2, #MOTOR_WRITE_ZERO
-	str r2, [r3]
-	
 	mov r0, #0
 	b end_set_motor_speed
-	
-SET_MOTOR_ONE:
 
-	@desloca a velocidade para o liugar da velocidade do motor 1
+set_motor_one:
+	@ Desloca a velocidade para o lugar da velocidade do motor 1
 	lsl r1, r1, #MOTOR_ONE_SPEED_SHIFT
 	
-	@seta o motor write 1 para 0 e seta a nova velocidade do motor 1
+	@ Seta a velocidade do motor um e write para zero
 	ldr r3, =GPIO_DR
 	ldr r2, [r3]
 	bic r2, r2, #SET_MOTOR_ONE_MASK
 	orr r2, r2, r1
-	orr r2, r2, #MOTOR_WRITE_ONE
-	str r2, [r3]
-
-	@seta o motor write para 0
-	ldr r2, [r3]
-	bic r2, r2, #MOTOR_WRITE_ONE
 	str r2, [r3]
 
 	mov r0, #0
 	b end_set_motor_speed
 	
 invalid_motor:
-
 	mov r0, #-1
 
 end_set_motor_speed:
-
 	movs pc, lr
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-SET_MOTORS_SPEED:
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+SET_MOTORS_SPEED: @ seta a velocidade dos dois motores
 
 	cmp r0, #MAXIMUM_SPEED
 	bhi invalid_speed2
@@ -508,54 +470,47 @@ SET_MOTORS_SPEED:
 
 	lsl r0, r0, #MOTOR_ZERO_SPEED_SHIFT
 	lsl r1, r1, #MOTOR_ONE_SPEED_SHIFT
+	add r0, r0, r1
 
-	@seta os motor write para 1 e seta as velocidades
+	@ Seta as velocidades e motor write para 0
 	ldr r3, =GPIO_DR
 	ldr r2, [r3]
 	ldr r4, =SET_MOTORS_MASK
 	bic r2, r2, r4
 	orr r2, r2, r0
-	orr r2, r2, r1
-	orr r2, r2, #MOTORS_WRITE
-	str r2, [r3]
-
-	@seta os motor write para 0
-	ldr r2, [r3]
-	bic r2, r2, #MOTORS_WRITE
 	str r2, [r3]
 
 	mov r0, #0
 	b end_of_set_motors
 
 invalid_speed2:
-
 	mov r0, #-1
 	b end_of_set_motors
 	
 invalid_speed3:
-
 	mov r0, #-2
 
 end_of_set_motors:
-
 	movs pc, lr
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-RETURN_TO_SUPERVISOR:
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-	mov r4, lr
+RETURN_TO_IRQ:
+
+	mov r3, lr
 	
-	@muda de Supervisor para o modo IRQ
+	@ Muda para modo IRQ
 	mrs r5, CPSR
 	bic r5, r5, #SYSTEM_NUMBER
 	orr r5, r5, #IRQ_NUMBER
 	msr CPSR_c, r5
 	
-	mov lr, r4
+	mov lr, r3
 	
 	mov pc, lr
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 IRQ_HANDLER:
 
 	stmfd sp!, {r0 - r12}
@@ -564,90 +519,88 @@ IRQ_HANDLER:
 	mov r1, #0x1
 	str r1, [r0]
 
-	@adiciona uma unidade de tempo no CONTADOR
+	@ Adiciona uma unidade de tempo no CONTADOR
 	ldr r1, =CONTADOR
 	ldr r0, [r1]
 	add r0, r0, #1
 	str r0, [r1]
 
-	mov r2, #0                      @variavel de indução
+	mov r2, #0                      @ variavel de indução
 	ldr r3, =ALARM_VECTOR           @variavel contendo o endereço inicial do vetor de alarmes
 
-for2:
+for_check_alarms:
 
-	@verifica se a umtima oteração ja foi feita
-	cmp r2, #MAX_ALARMS
-	beq end_of_for2
+	cmp r2, #MAX_ALARMS             @ verifica se percorreu todo o vetor
+	beq end_of_for_check_alarms
 
-	@verifica se a posição no vetor nao é uma posição livre
+	@ Verifica se tem alarme na posição atual do vetor
 	ldr r4, [r3, #4]
 	cmp r4, #0x0
-	beq continue_for
+	beq continue_for_check_alarms   @ nao tem alarme
 
-	@compara cada tempo de cada alarme de dentro do vetor de alarmes com o tempo atual do sistema
-	ldr r4, [r3]
-	cmp r4, r0
-	bls go_to_user
+	ldr r4, [r3]                    @ tem alarme
+	cmp r4, r0                      @ compara o tempo do alarme com o tempo atual
+	bls run_alarm                   @ tem alarme no tempo atual
 
-continue_for:
+continue_for_check_alarms:
 	add r2, r2, #1
 	add r3, r3, #8
 
-	b for2
+	b for_check_alarms
 
-go_to_user:
+run_alarm:
 
-	@coloca o endereço da função a ser chamada pelo sistema quando o alarme for ativado em r4
+	@ Coloca o endereço da função a ser chamada em r4
 	ldr r4, [r3, #4]
 
 	mrs r1, spsr               @ pega o SPSR e coloca em r1
 	stmfd sp!, {r0 - r4, lr}
 
-	@altera para modo de usuario
+	@ Altera para modo de usuario
 	mrs r5, CPSR
 	bic r5, r5, #SYSTEM_NUMBER
 	orr r5, r5, #USER_NUMBER
 	msr CPSR_c, r5
 
-	@pula para a função do usuario
+	@ Executa a funcao do alarme
 	blx r4
 
-	@chama system call que fara com que o modo volte pa supervisor quando a função do usuario acabar
-	mov r7, #RETURN_TO_SUPERVISOR_NUMBER
+	@ Chama system call para voltar ao modo IRQ depois da execucao da funcao do alarme
+	mov r7, #RETURN_TO_IRQ_NUMBER
 	svc 0x0
 
 	ldmfd sp!, {r0 - r4, lr}
-	msr spsr, r1          @Restaura o spsr de antes do alarme
+	msr spsr, r1                @ Restaura o SPSR de antes do alarme
 
-	@diminui um no numero de alarmes ativos
+	@ Diminui o numero de alarmes ativos
 	ldr r4, =ACTIVE_ALARMS
 	ldr r6, [r4]
 	sub r6, r6, #1
 	str r6, [r4]
 
-	@libera o espaço do alarme
+	@ Libera o espaço do alarme
 	mov r6, #0x0
 	str r6, [r3, #4]
 
 	add r2, r2, #1
 	add r3, r3, #8
 
-	b for2 
+	b for_check_alarms 
 
-end_of_for2:
+end_of_for_check_alarms:
 
-	ldmfd sp!, {r4 - r12}
+	ldmfd sp!, {r0 - r12}
 
 	sub lr, lr, #4
 	movs pc, lr
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 INTERRUPTION_HANDLER:
 
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 .data
-
 .org 0xFFF
 
 CONTADOR:
